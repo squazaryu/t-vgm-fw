@@ -52,8 +52,11 @@ tags such as `v1.0.0`.
 
 ## Status
 
-The repository is in Phase 0: recovery baseline and hardware contract. Follow
-the staged plan in [docs/roadmap.md](docs/roadmap.md).
+Phase 0 is accepted on physical hardware. The module successfully ran the clean
+recovery probe, survived a cold boot, re-entered physical BOOT mode, and returned
+to stock firmware with working Video Out and IMU self-tests. Phase 1 starts with
+the reproducible Pico SDK build foundation. Follow the staged plan in
+[docs/roadmap.md](docs/roadmap.md).
 
 The official stock `vgm-fw-0.1.0.uf2` recovery image is recorded by a
 commit-pinned manifest rather than redistributed here. Validate a downloaded

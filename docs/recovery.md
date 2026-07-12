@@ -98,3 +98,20 @@ license. TumoVGM implementation must therefore be written independently using
 licensed Pico SDK components and public hardware documentation. Do not copy
 official source files into this repository unless Flipper Devices publishes
 compatible license terms.
+
+## Accepted Hardware Baseline
+
+The Phase 0 gate was accepted on physical hardware on 2026-07-12:
+
+- physical BOOT mounted one `RPI-RP2` volume using UF2 Bootloader v3.0;
+- clean probe `t-vgm-dev-001-001` at commit `998165894a86` reported `dirty=0`;
+- probe SHA-256 was
+  `86fac6681f704ec8ecefd2c3909f1aa6ae2ade4cda35d05aa7964bd67c6cb584`;
+- the probe survived a complete USB power cycle;
+- physical BOOT remained available after the custom firmware was installed;
+- stock `0.1.0` was restored from the validated recovery artifact;
+- stock CLI reported firmware tag `0.1.0` and commit `a034e69`;
+- stock IMU reported ICM-42688-P ID `0x47`, gyro PASS/OK, and accel PASS/OK;
+- stock Video Out produced a stable image without visible artifacts.
+
+No unique hardware identifiers are stored in this repository.
