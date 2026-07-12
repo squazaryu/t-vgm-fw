@@ -17,3 +17,5 @@ cmake-build-*/
 .cache/
 coverage/
 reports/
+__pycache__/
+*.py[cod]

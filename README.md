@@ -55,6 +55,18 @@ tags such as `v1.0.0`.
 The repository is in Phase 0: recovery baseline and hardware contract. Follow
 the staged plan in [docs/roadmap.md](docs/roadmap.md).
 
+The official stock `vgm-fw-0.1.0.uf2` recovery image is recorded by a
+commit-pinned manifest rather than redistributed here. Validate a downloaded
+copy before any hardware experiment:
+
+```sh
+python3 tools/inspect_uf2.py \
+  --manifest recovery/stock-vgm-fw-0.1.0.json \
+  /path/to/vgm-fw-0.1.0.uf2
+```
+
+See [docs/recovery.md](docs/recovery.md) before flashing any development UF2.
+
 ## Official References
 
 - [Video Game Module overview](https://docs.flipper.net/zero/video-game-module)
