@@ -46,16 +46,56 @@ Development builds use:
 t-vgm-dev-<major>-<iteration>
 ```
 
-The initial development line will start at `t-vgm-dev-001-001` after the Pico
-SDK bootstrap is complete. Stable releases will use semantic versions and Git
-tags such as `v1.0.0`.
+The recovery probe used `t-vgm-dev-001-001`. The reproducible build foundation
+advances the line to `t-vgm-dev-001-002`. Each accepted issue-level firmware
+change advances the final three-digit iteration. Stable releases will use
+semantic versions and Git tags such as `v1.0.0`.
+
+## Building
+
+The build is pinned to Pico SDK `1.5.1` at commit `6a7db34f` and GNU Arm
+Embedded GCC `12.3.1`. Initialize only the submodules required by the RP2040
+target:
+
+```sh
+git submodule update --init third_party/pico-sdk
+git -C third_party/pico-sdk submodule update --init lib/tinyusb
+```
+
+Install CMake and Ninja. On macOS, the GCC toolchain already bundled with a
+Tumoflip checkout can be selected explicitly:
+
+```sh
+brew install cmake ninja
+export ARM_TOOLCHAIN_BIN=/path/to/tumoflip/toolchain/arm64-darwin/bin
+```
+
+Build from a clean source tree and prove that a second independent build
+produces the same UF2 bytes:
+
+```sh
+python3 tools/build_firmware.py --clean --verify-reproducible
+```
+
+The build produces:
+
+- `build/tumovgm_recovery_probe.elf`
+- `build/tumovgm_recovery_probe.elf.map`
+- `build/tumovgm_recovery_probe.bin`
+- `build/tumovgm_recovery_probe.uf2`
+- `build/tumovgm_recovery_probe.manifest.json`
+
+The manifest exposes firmware, protocol, Git, SDK, compiler, target, size, and
+SHA-256 information without flashing the module. The normal build refuses a
+dirty source tree. `--allow-dirty` is available only for local development and
+must not be used for hardware acceptance or published artifacts.
 
 ## Status
 
 Phase 0 is accepted on physical hardware. The module successfully ran the clean
 recovery probe, survived a cold boot, re-entered physical BOOT mode, and returned
-to stock firmware with working Video Out and IMU self-tests. Phase 1 starts with
-the reproducible Pico SDK build foundation. Follow the staged plan in
+to stock firmware with working Video Out and IMU self-tests. Phase 1 build
+foundation work is tracked in issue `#2`. Follow the staged plan in
 [docs/roadmap.md](docs/roadmap.md).
 
 The official stock `vgm-fw-0.1.0.uf2` recovery image is recorded by a

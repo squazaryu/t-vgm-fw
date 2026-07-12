@@ -11,6 +11,14 @@
 #error "TUMOVGM_GIT_COMMIT must be defined by the build system"
 #endif
 
+#ifndef TUMOVGM_PROTOCOL_MAJOR
+#error "TUMOVGM_PROTOCOL_MAJOR must be defined by the build system"
+#endif
+
+#ifndef TUMOVGM_PROTOCOL_MINOR
+#error "TUMOVGM_PROTOCOL_MINOR must be defined by the build system"
+#endif
+
 #ifndef TUMOVGM_GIT_DIRTY
 #error "TUMOVGM_GIT_DIRTY must be defined by the build system"
 #endif
@@ -35,9 +43,11 @@ int main(void) {
 
     while(true) {
         printf(
-            "TUMOVGM_RECOVERY_PROBE version=%s commit=%s dirty=%d "
+            "TUMOVGM_RECOVERY_PROBE version=%s protocol=%d.%d commit=%s dirty=%d "
             "gpio=high-z usb_host=off\n",
             TUMOVGM_VERSION,
+            TUMOVGM_PROTOCOL_MAJOR,
+            TUMOVGM_PROTOCOL_MINOR,
             TUMOVGM_GIT_COMMIT,
             TUMOVGM_GIT_DIRTY);
         sleep_ms(TumovgmHeartbeatPeriodMs);
