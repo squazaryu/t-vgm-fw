@@ -1,0 +1,19 @@
+# Build output
+build/
+cmake-build-*/
+*.bin
+*.elf
+*.hex
+*.map
+*.uf2
+
+# Pico SDK and local toolchain configuration
+.pico-sdk/
+.vscode/
+.idea/
+.DS_Store
+
+# Test and tooling output
+.cache/
+coverage/
+reports/
