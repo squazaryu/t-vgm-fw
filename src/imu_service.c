@@ -17,23 +17,39 @@ static uint16_t tumovgm_negotiate_rate(uint16_t requested_rate_hz) {
     return 0;
 }
 
-static TumovgmImuOrientation tumovgm_orientation(const int16_t acceleration_mg[3]) {
-    const int32_t x = acceleration_mg[0];
-    const int32_t y = acceleration_mg[1];
-    const int32_t z = acceleration_mg[2];
-    const int32_t abs_x = abs(x);
-    const int32_t abs_y = abs(y);
-    const int32_t abs_z = abs(z);
-    const int32_t dominant = abs_x > abs_y ? (abs_x > abs_z ? abs_x : abs_z) :
-                                             (abs_y > abs_z ? abs_y : abs_z);
-    if(dominant < 650) return TumovgmImuOrientationUnknown;
-    if(dominant == abs_x) {
-        return x >= 0 ? TumovgmImuOrientationXPositive : TumovgmImuOrientationXNegative;
+static TumovgmImuOrientation
+    tumovgm_orientation(const int16_t acceleration_mg[3], TumovgmImuOrientation current) {
+    int32_t magnitude[3];
+    uint8_t dominant_axis = 0;
+    uint8_t second_axis = 1;
+    for(uint8_t axis = 0; axis < 3; axis++) {
+        magnitude[axis] = abs(acceleration_mg[axis]);
+        if(magnitude[axis] > magnitude[dominant_axis]) dominant_axis = axis;
     }
-    if(dominant == abs_y) {
-        return y >= 0 ? TumovgmImuOrientationYPositive : TumovgmImuOrientationYNegative;
+    for(uint8_t axis = 0; axis < 3; axis++) {
+        if(axis != dominant_axis &&
+           (second_axis == dominant_axis || magnitude[axis] > magnitude[second_axis])) {
+            second_axis = axis;
+        }
     }
-    return z >= 0 ? TumovgmImuOrientationZPositive : TumovgmImuOrientationZNegative;
+
+    if(current != TumovgmImuOrientationUnknown) {
+        const uint8_t current_axis = ((uint8_t)current - 1U) / 2U;
+        const bool current_positive = (((uint8_t)current - 1U) % 2U) == 0;
+        const bool sign_matches = (acceleration_mg[current_axis] >= 0) == current_positive;
+        if(sign_matches && magnitude[current_axis] >= TumovgmImuOrientationHoldThresholdMg &&
+           magnitude[dominant_axis] - magnitude[current_axis] <
+               TumovgmImuOrientationSwitchMarginMg) {
+            return current;
+        }
+    }
+
+    if(magnitude[dominant_axis] < TumovgmImuOrientationEnterThresholdMg ||
+       magnitude[dominant_axis] - magnitude[second_axis] < TumovgmImuOrientationSwitchMarginMg) {
+        return TumovgmImuOrientationUnknown;
+    }
+    const bool positive = acceleration_mg[dominant_axis] >= 0;
+    return (TumovgmImuOrientation)(1U + dominant_axis * 2U + (positive ? 0U : 1U));
 }
 
 static uint8_t tumovgm_orientation_confidence(const int16_t acceleration_mg[3]) {
@@ -268,7 +284,7 @@ bool tumovgm_imu_service_poll(TumovgmImuService* service, uint32_t now_ms, Tumov
     }
 
     service->latest_sample.orientation =
-        tumovgm_orientation(service->latest_sample.acceleration_mg);
+        tumovgm_orientation(service->latest_sample.acceleration_mg, service->orientation);
     tumovgm_update_orientation(service, now_ms);
     service->latest_sample.orientation = service->orientation;
     if((service->latest_sample.flags & TumovgmImuSampleFlagCalibrated) != 0 &&

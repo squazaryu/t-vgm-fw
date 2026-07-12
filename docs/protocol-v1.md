@@ -194,8 +194,10 @@ IMU samples use `STREAM_DATA (0x0011)` and consume one granted credit. The
 
 `IMU_GESTURE (0x0022)` is a zero-sequence event with a 16-byte payload:
 `session_id u32, event_sequence u16, gesture u8, confidence u8, timestamp_ms
-u32, orientation u8, reserved[3]`. Orientation changes require three stable
-samples. Gesture events have an 800 ms minimum debounce and are never emitted
+u32, orientation u8, reserved[3]`. Orientation changes require six stable
+samples, at least 800 mg on the leading axis, and a 180 mg lead over the next
+axis. The current axis is retained down to 550 mg around diagonal positions.
+Gesture events have an 800 ms minimum debounce and are never emitted
 outside an active session. They do not consume raw-stream credit, but only one
 gesture may be pending at a time.
 

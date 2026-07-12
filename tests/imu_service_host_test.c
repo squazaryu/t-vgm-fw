@@ -138,26 +138,39 @@ static bool test_orientation_gesture_and_session_release(void) {
     CHECK(tumovgm_imu_service_configure(&service, 11, 10, TumovgmImuFlagGestures, 0, &rate));
 
     TumovgmImuEvent event;
-    CHECK(!tumovgm_imu_service_poll(&service, 0, &event));
-    CHECK(!tumovgm_imu_service_poll(&service, 100, &event));
-    CHECK(!tumovgm_imu_service_poll(&service, 200, &event));
+    for(uint32_t sample = 0; sample < TumovgmImuStableOrientationSamples; sample++) {
+        CHECK(!tumovgm_imu_service_poll(&service, sample * 100, &event));
+    }
     CHECK(service.orientation == TumovgmImuOrientationZPositive);
+
+    fake.sample.acceleration[0] = 6144;
+    fake.sample.acceleration[1] = 5734;
+    fake.sample.acceleration[2] = 0;
+    for(uint32_t sample = 0; sample < TumovgmImuStableOrientationSamples * 2; sample++) {
+        const int16_t swap = fake.sample.acceleration[0];
+        fake.sample.acceleration[0] = fake.sample.acceleration[1];
+        fake.sample.acceleration[1] = swap;
+        CHECK(!tumovgm_imu_service_poll(&service, 600 + sample * 100, &event));
+        CHECK(service.orientation == TumovgmImuOrientationZPositive);
+    }
 
     memset(fake.sample.acceleration, 0, sizeof(fake.sample.acceleration));
     fake.sample.acceleration[1] = 8192;
-    CHECK(!tumovgm_imu_service_poll(&service, 800, &event));
-    CHECK(!tumovgm_imu_service_poll(&service, 900, &event));
-    CHECK(tumovgm_imu_service_poll(&service, 1000, &event));
+    for(uint32_t sample = 0; sample < TumovgmImuStableOrientationSamples - 1; sample++) {
+        CHECK(!tumovgm_imu_service_poll(&service, 1800 + sample * 100, &event));
+        CHECK(service.orientation == TumovgmImuOrientationZPositive);
+    }
+    CHECK(tumovgm_imu_service_poll(&service, 2300, &event));
     CHECK(event.kind == TumovgmImuEventGesture);
     CHECK(event.data.gesture.gesture == TumovgmImuGestureOrientationChanged);
     CHECK(event.data.gesture.orientation == TumovgmImuOrientationYPositive);
     CHECK(event.data.gesture.confidence >= 60);
-    CHECK(!tumovgm_imu_service_poll(&service, 1001, &event));
+    CHECK(!tumovgm_imu_service_poll(&service, 2301, &event));
 
     tumovgm_imu_service_sync_session(&service, false, 0);
     CHECK(!service.running);
     CHECK(fake.stops == 1);
-    CHECK(!tumovgm_imu_service_poll(&service, 1200, &event));
+    CHECK(!tumovgm_imu_service_poll(&service, 2400, &event));
     return true;
 }
 

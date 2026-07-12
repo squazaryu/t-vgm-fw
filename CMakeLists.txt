@@ -86,7 +86,7 @@ add_subdirectory(
     "${CMAKE_CURRENT_BINARY_DIR}/pico-dvi-libdvi"
 )
 
-set(TUMOVGM_VERSION "t-vgm-dev-001-006")
+set(TUMOVGM_VERSION "t-vgm-dev-001-007")
 set(TUMOVGM_PROTOCOL_MAJOR 1)
 set(TUMOVGM_PROTOCOL_MINOR 2)
 
@@ -162,7 +162,7 @@ pico_set_program_description(
     tumovgm_firmware
     "Versioned UART bridge and 640x480 Video Out diagnostics"
 )
-pico_set_program_version(tumovgm_firmware "001.006")
+pico_set_program_version(tumovgm_firmware "001.007")
 pico_enable_stdio_uart(tumovgm_firmware 0)
 pico_enable_stdio_usb(tumovgm_firmware 1)
 pico_add_extra_outputs(tumovgm_firmware)

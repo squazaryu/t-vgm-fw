@@ -52,7 +52,7 @@ advanced the line to `t-vgm-dev-001-002`. Protocol v1.0 advanced it to
 `t-vgm-dev-001-003`; the first UART bridge endpoint advanced it to
 `t-vgm-dev-001-004` with protocol v1.1. The Video Out diagnostics renderer uses
 `t-vgm-dev-001-005` while keeping protocol v1.1. Bounded ICM-42688-P telemetry
-advances the line to `t-vgm-dev-001-006` and protocol v1.2. Each accepted
+advances the line to `t-vgm-dev-001-007` and protocol v1.2. Each accepted
 issue-level firmware change advances the final three-digit iteration. Stable
 releases will use semantic versions and Git tags such as `v1.0.0`.
 
