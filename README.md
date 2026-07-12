@@ -36,7 +36,8 @@ The system is split into independently versioned components:
 
 The wire contract uses a versioned, framed protocol with capability negotiation.
 Firmware and clients must fail closed when their protocol major versions differ.
-See [docs/architecture.md](docs/architecture.md).
+See [docs/protocol-v1.md](docs/protocol-v1.md) for the normative v1 contract and
+[docs/architecture.md](docs/architecture.md) for the system boundaries.
 
 ## Versioning
 
@@ -47,9 +48,10 @@ t-vgm-dev-<major>-<iteration>
 ```
 
 The recovery probe used `t-vgm-dev-001-001`. The reproducible build foundation
-advances the line to `t-vgm-dev-001-002`. Each accepted issue-level firmware
-change advances the final three-digit iteration. Stable releases will use
-semantic versions and Git tags such as `v1.0.0`.
+advanced the line to `t-vgm-dev-001-002`. Protocol v1 advances it to
+`t-vgm-dev-001-003`. Each accepted issue-level firmware change advances the
+final three-digit iteration. Stable releases will use semantic versions and Git
+tags such as `v1.0.0`.
 
 ## Building
 
@@ -94,8 +96,9 @@ must not be used for hardware acceptance or published artifacts.
 
 Phase 0 is accepted on physical hardware. The module successfully ran the clean
 recovery probe, survived a cold boot, re-entered physical BOOT mode, and returned
-to stock firmware with working Video Out and IMU self-tests. Phase 1 build
-foundation work is tracked in issue `#2`. Follow the staged plan in
+to stock firmware with working Video Out and IMU self-tests. The Phase 1 build
+foundation and transport-agnostic protocol core are complete; the physical
+Flipper transport binding remains a separate step. Follow the staged plan in
 [docs/roadmap.md](docs/roadmap.md).
 
 The official stock `vgm-fw-0.1.0.uf2` recovery image is recorded by a

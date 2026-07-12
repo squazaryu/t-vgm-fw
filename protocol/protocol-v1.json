@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "protocol": {
+    "name": "TumoVGM",
+    "major": 1,
+    "minor": 0,
+    "magic_ascii": "TVG1",
+    "max_payload": 512,
+    "crc": "CRC-16/CCITT-FALSE"
+  },
+  "frame_kinds": {
+    "REQUEST": 1,
+    "RESPONSE": 2,
+    "EVENT": 3,
+    "ERROR": 4
+  },
+  "frame_flags": {
+    "MORE": 1,
+    "ACK_REQUIRED": 2
+  },
+  "messages": {
+    "HELLO": 1,
+    "CAPABILITIES": 2,
+    "SESSION_OPEN": 3,
+    "SESSION_CLOSE": 4,
+    "CANCEL": 5,
+    "PING": 6,
+    "STREAM_CREDIT": 16,
+    "STREAM_DATA": 17,
+    "STREAM_END": 18
+  },
+  "errors": {
+    "UNSUPPORTED_VERSION": 1,
+    "UNSUPPORTED_MESSAGE": 2,
+    "MALFORMED": 3,
+    "BAD_STATE": 4,
+    "BUSY": 5,
+    "TIMEOUT": 6,
+    "CANCELLED": 7,
+    "NO_CAPABILITY": 8,
+    "OVERFLOW": 9,
+    "INTERNAL": 10
+  },
+  "capabilities": {
+    "VIDEO_OUT": 0,
+    "IMU": 1,
+    "GPIO_CAPTURE": 2,
+    "HW_TRIGGER": 3,
+    "TRACE_BUFFER": 4,
+    "DECODER_UART": 5,
+    "DECODER_SPI": 6,
+    "DECODER_I2C": 7,
+    "USB_DEVICE": 8,
+    "USB_HOST": 9
+  }
+}
