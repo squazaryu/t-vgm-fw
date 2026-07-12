@@ -1,0 +1,95 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host-tests:
+    name: Host tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run tests
+        run: python3 -m unittest discover -s tests -v
+
+  firmware:
+    name: Reproducible RP2040 firmware
+    needs: host-tests
+    runs-on: ubuntu-22.04
+    env:
+      TOOLCHAIN_ARCHIVE: gcc-arm-none-eabi-12.3-x86_64-linux-flipper-33.tar.gz
+      TOOLCHAIN_SHA256: 59020d6199172c6c7b6bfa7dca1dbf79a1281cb2f733a9d4ab8dd22741332bf1
+      TOOLCHAIN_URL: https://update.flipperzero.one/builds/toolchain/gcc-arm-none-eabi-12.3-x86_64-linux-flipper-33.tar.gz
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Initialize required SDK submodules
+        run: |
+          git submodule update --init --depth 1 third_party/pico-sdk
+          git -C third_party/pico-sdk submodule update --init --depth 1 lib/tinyusb
+
+      - name: Install host build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends cmake ninja-build
+
+      - name: Cache Arm toolchain archive
+        uses: actions/cache@v4
+        with:
+          path: .cache/${{ env.TOOLCHAIN_ARCHIVE }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ env.TOOLCHAIN_SHA256 }}
+
+      - name: Install pinned Arm toolchain
+        run: |
+          mkdir -p .cache .toolchain
+          if [ ! -f ".cache/${TOOLCHAIN_ARCHIVE}" ]; then
+            curl --fail --location --retry 3 \
+              --output ".cache/${TOOLCHAIN_ARCHIVE}" \
+              "${TOOLCHAIN_URL}"
+          fi
+          echo "${TOOLCHAIN_SHA256}  .cache/${TOOLCHAIN_ARCHIVE}" | sha256sum --check
+          tar --extract --gzip \
+            --file ".cache/${TOOLCHAIN_ARCHIVE}" \
+            --directory .toolchain \
+            --strip-components 1
+          test "$(.toolchain/bin/arm-none-eabi-gcc -dumpfullversion)" = "12.3.1"
+
+      - name: Build and prove UF2 reproducibility
+        run: |
+          python3 tools/build_firmware.py \
+            --clean \
+            --verify-reproducible \
+            --toolchain-bin .toolchain/bin
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: t-vgm-fw-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            build/tumovgm_recovery_probe.elf
+            build/tumovgm_recovery_probe.elf.map
+            build/tumovgm_recovery_probe.bin
+            build/tumovgm_recovery_probe.uf2
+            build/tumovgm_recovery_probe.manifest.json
