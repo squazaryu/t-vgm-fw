@@ -9,6 +9,7 @@ from tools.build_firmware import (
     BuildError,
     _prepare_build_dir,
     validate_manifest,
+    validate_pico_dvi,
     validate_sdk,
     verify_reproducible,
 )
@@ -19,6 +20,11 @@ class BuildFirmwareTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaisesRegex(BuildError, "git submodule update"):
                 validate_sdk(Path(directory) / "missing")
+
+    def test_missing_pico_dvi_has_actionable_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(BuildError, "third_party/pico-dvi"):
+                validate_pico_dvi(Path(directory) / "missing")
 
     def test_manifest_dirty_state_must_match_source(self):
         with tempfile.TemporaryDirectory() as directory:

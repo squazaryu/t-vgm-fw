@@ -20,6 +20,17 @@ radio and NFC subsystems.
 - A framed transport endpoint with capability negotiation.
 - No persistent secrets in the initial development line.
 
+### Video Out diagnostics
+
+- Core 1 owns PicoDVI scanline encoding and the Video Out DMA/PIO resources.
+- Core 0 owns UART protocol parsing, session state, dashboard rendering, and
+  watchdog service.
+- Dashboard snapshots are copied into a bounded double buffer and become active
+  only at a frame boundary. The scanline callback never takes a mutex.
+- The default dashboard exposes only firmware/protocol health, coarse link and
+  session state, IMU availability, bounded error codes, and uptime. It never
+  renders hardware identifiers, secrets, or raw captured payloads.
+
 ### Tumoflip client
 
 - Detects the module and reads firmware identity and capabilities.

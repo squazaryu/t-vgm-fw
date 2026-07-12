@@ -43,10 +43,11 @@ jobs:
         with:
           submodules: false
 
-      - name: Initialize required SDK submodules
+      - name: Initialize required firmware submodules
         run: |
           git submodule update --init --depth 1 third_party/pico-sdk
           git -C third_party/pico-sdk submodule update --init --depth 1 lib/tinyusb
+          git submodule update --init third_party/pico-dvi
 
       - name: Install host build tools
         run: |

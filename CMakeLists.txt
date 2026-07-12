@@ -4,6 +4,8 @@ set(TUMOVGM_REQUIRED_PICO_SDK_VERSION "1.5.1")
 set(TUMOVGM_REQUIRED_PICO_SDK_COMMIT "6a7db34ff63345a7badec79ebea3aaef1712f374")
 set(TUMOVGM_REQUIRED_GCC_VERSION "12.3.1")
 set(TUMOVGM_PINNED_PICO_SDK_PATH "${CMAKE_CURRENT_LIST_DIR}/third_party/pico-sdk")
+set(TUMOVGM_REQUIRED_PICO_DVI_COMMIT "a248d72b8cc95a08b43ef4307cd954eb801272b2")
+set(TUMOVGM_PICO_DVI_PATH "${CMAKE_CURRENT_LIST_DIR}/third_party/pico-dvi")
 
 if(NOT DEFINED PICO_SDK_PATH OR PICO_SDK_PATH STREQUAL "")
     set(PICO_SDK_PATH "${TUMOVGM_PINNED_PICO_SDK_PATH}")
@@ -20,6 +22,10 @@ if(NOT EXISTS "${PICO_SDK_PATH}/lib/tinyusb/src/tusb.c")
         "TinyUSB is missing. Run: "
         "git -C third_party/pico-sdk submodule update --init lib/tinyusb")
 endif()
+if(NOT EXISTS "${TUMOVGM_PICO_DVI_PATH}/software/libdvi/dvi.c")
+    message(FATAL_ERROR
+        "PicoDVI is missing. Run: git submodule update --init third_party/pico-dvi")
+endif()
 
 execute_process(
     COMMAND git rev-parse HEAD
@@ -35,6 +41,18 @@ if(NOT TUMOVGM_PICO_SDK_COMMIT STREQUAL TUMOVGM_REQUIRED_PICO_SDK_COMMIT)
     message(FATAL_ERROR
         "Unsupported Pico SDK commit ${TUMOVGM_PICO_SDK_COMMIT}; "
         "expected ${TUMOVGM_REQUIRED_PICO_SDK_COMMIT}")
+endif()
+execute_process(
+    COMMAND git rev-parse HEAD
+    WORKING_DIRECTORY "${TUMOVGM_PICO_DVI_PATH}"
+    OUTPUT_VARIABLE TUMOVGM_PICO_DVI_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    COMMAND_ERROR_IS_FATAL ANY
+)
+if(NOT TUMOVGM_PICO_DVI_COMMIT STREQUAL TUMOVGM_REQUIRED_PICO_DVI_COMMIT)
+    message(FATAL_ERROR
+        "Unsupported PicoDVI commit ${TUMOVGM_PICO_DVI_COMMIT}; "
+        "expected ${TUMOVGM_REQUIRED_PICO_DVI_COMMIT}")
 endif()
 
 include("${PICO_SDK_PATH}/external/pico_sdk_import.cmake")
@@ -63,8 +81,12 @@ endif()
 
 pico_sdk_init()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_subdirectory(
+    "${TUMOVGM_PICO_DVI_PATH}/software/libdvi"
+    "${CMAKE_CURRENT_BINARY_DIR}/pico-dvi-libdvi"
+)
 
-set(TUMOVGM_VERSION "t-vgm-dev-001-004")
+set(TUMOVGM_VERSION "t-vgm-dev-001-005")
 set(TUMOVGM_PROTOCOL_MAJOR 1)
 set(TUMOVGM_PROTOCOL_MINOR 1)
 
@@ -96,38 +118,48 @@ else()
     set(TUMOVGM_GIT_DIRTY 1)
 endif()
 
-add_executable(tumovgm_firmware
+set(TUMOVGM_FIRMWARE_SOURCES
     src/bridge.c
     src/bridge_uart.c
+    src/dashboard.c
     src/protocol.c
     src/main.c
+    src/video_out.c
 )
+add_executable(tumovgm_firmware ${TUMOVGM_FIRMWARE_SOURCES})
 
 target_include_directories(tumovgm_firmware PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${TUMOVGM_PICO_DVI_PATH}/software/include"
 )
 
-target_compile_options(tumovgm_firmware PRIVATE
-    -Wall
-    -Wextra
-    -Werror
+set_source_files_properties(
+    ${TUMOVGM_FIRMWARE_SOURCES}
+    PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Werror"
 )
 target_compile_definitions(tumovgm_firmware PRIVATE
+    PICO_XOSC_STARTUP_DELAY_MULTIPLIER=64
     TUMOVGM_VERSION="${TUMOVGM_VERSION}"
     TUMOVGM_GIT_COMMIT="${TUMOVGM_GIT_COMMIT}"
     TUMOVGM_GIT_DIRTY=${TUMOVGM_GIT_DIRTY}
 )
 target_link_libraries(tumovgm_firmware PRIVATE
+    hardware_clocks
     hardware_uart
+    hardware_vreg
+    hardware_watchdog
+    libdvi
+    pico_multicore
     pico_stdlib
+    pico_util
 )
 
 pico_set_program_name(tumovgm_firmware "TumoVGM Bridge")
 pico_set_program_description(
     tumovgm_firmware
-    "Versioned UART bridge and USB diagnostic heartbeat"
+    "Versioned UART bridge and 640x480 Video Out diagnostics"
 )
-pico_set_program_version(tumovgm_firmware "001.004")
+pico_set_program_version(tumovgm_firmware "001.005")
 pico_enable_stdio_uart(tumovgm_firmware 0)
 pico_enable_stdio_usb(tumovgm_firmware 1)
 pico_add_extra_outputs(tumovgm_firmware)
@@ -167,4 +199,5 @@ message(STATUS "TumoVGM protocol: ${TUMOVGM_PROTOCOL_MAJOR}.${TUMOVGM_PROTOCOL_M
 message(STATUS "TumoVGM commit: ${TUMOVGM_GIT_COMMIT}")
 message(STATUS "TumoVGM dirty: ${TUMOVGM_GIT_DIRTY}")
 message(STATUS "Pico SDK: ${PICO_SDK_VERSION_STRING} (${TUMOVGM_PICO_SDK_COMMIT})")
+message(STATUS "PicoDVI: ${TUMOVGM_PICO_DVI_COMMIT}")
 message(STATUS "Compiler: ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")

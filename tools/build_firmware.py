@@ -15,8 +15,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SDK = REPO_ROOT / "third_party" / "pico-sdk"
+DEFAULT_PICO_DVI = REPO_ROOT / "third_party" / "pico-dvi"
 EXPECTED_SDK_COMMIT = "6a7db34ff63345a7badec79ebea3aaef1712f374"
 EXPECTED_TINYUSB_COMMIT = "86c416d4c0fb38432460b3e11b08b9de76941bf5"
+EXPECTED_PICO_DVI_COMMIT = "a248d72b8cc95a08b43ef4307cd954eb801272b2"
 EXPECTED_GCC_VERSION = "12.3.1"
 OUTPUT_BASE = "tumovgm_firmware"
 
@@ -71,12 +73,26 @@ def validate_sdk(path: Path) -> None:
         )
 
 
+def validate_pico_dvi(path: Path) -> None:
+    if not (path / "software" / "libdvi" / "dvi.c").is_file():
+        raise BuildError(
+            "PicoDVI is missing. Run: git submodule update --init third_party/pico-dvi"
+        )
+    if _git_head(path) != EXPECTED_PICO_DVI_COMMIT:
+        raise BuildError(
+            f"unsupported PicoDVI commit; expected {EXPECTED_PICO_DVI_COMMIT}"
+        )
+
+
 def source_is_dirty() -> bool:
     return bool(_run(["git", "status", "--porcelain", "--untracked-files=normal"]))
 
 
 def tool_environment(toolchain_bin: Path | None) -> tuple[dict[str, str], Path]:
     env = os.environ.copy()
+    # Pico SDK 1.5.1 builds pioasm as a nested CMake project whose minimum is
+    # older than CMake 4 accepts without an explicit compatibility floor.
+    env.setdefault("CMAKE_POLICY_VERSION_MINIMUM", "3.5")
     if toolchain_bin:
         toolchain_bin = toolchain_bin.resolve()
         env["PATH"] = f"{toolchain_bin}{os.pathsep}{env.get('PATH', '')}"
@@ -136,6 +152,7 @@ def build_once(
             "-G",
             "Ninja",
             "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
             "-DPICO_BOARD=pico",
             f"-DPICO_SDK_PATH={sdk}",
         ],
@@ -203,6 +220,7 @@ def main() -> int:
     try:
         sdk = args.sdk.resolve()
         validate_sdk(sdk)
+        validate_pico_dvi(DEFAULT_PICO_DVI.resolve())
         dirty = source_is_dirty()
         if dirty and not args.allow_dirty:
             raise BuildError("source tree is dirty; commit changes or pass --allow-dirty")
