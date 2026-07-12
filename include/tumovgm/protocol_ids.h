@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define TUMOVGM_PROTOCOL_MAJOR UINT8_C(1)
-#define TUMOVGM_PROTOCOL_MINOR UINT8_C(0)
+#define TUMOVGM_PROTOCOL_MINOR UINT8_C(1)
 #define TUMOVGM_PROTOCOL_MAX_PAYLOAD UINT16_C(512)
 #define TUMOVGM_PROTOCOL_MAGIC_0 UINT8_C(0x54)
 #define TUMOVGM_PROTOCOL_MAGIC_1 UINT8_C(0x56)
@@ -31,6 +31,7 @@ typedef enum TumovgmMessage {
     TumovgmMessageSessionClose = 4,
     TumovgmMessageCancel = 5,
     TumovgmMessagePing = 6,
+    TumovgmMessageDeviceInfo = 7,
     TumovgmMessageStreamCredit = 16,
     TumovgmMessageStreamData = 17,
     TumovgmMessageStreamEnd = 18,
@@ -61,5 +62,15 @@ typedef enum TumovgmCapabilityBit {
     TumovgmCapabilityBitUsbDevice = 8,
     TumovgmCapabilityBitUsbHost = 9,
 } TumovgmCapabilityBit;
+
+typedef enum TumovgmRole {
+    TumovgmRoleFlipper = 1,
+    TumovgmRoleVgm = 2,
+    TumovgmRoleHostDiagnostic = 3,
+} TumovgmRole;
+
+typedef enum TumovgmHardwareTarget {
+    TumovgmHardwareTargetVgmRp2040 = 1,
+} TumovgmHardwareTarget;
 
 #endif

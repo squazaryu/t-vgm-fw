@@ -31,7 +31,7 @@ class ProtocolSchemaTests(unittest.TestCase):
         self.assertEqual(schema["schema_version"], 1)
         self.assertEqual(schema["protocol"]["magic_ascii"], "TVG1")
         self.assertEqual(schema["protocol"]["major"], 1)
-        self.assertEqual(schema["protocol"]["minor"], 0)
+        self.assertEqual(schema["protocol"]["minor"], 1)
         self.assertEqual(schema["protocol"]["max_payload"], 512)
         self.assertEqual(len(set(schema["messages"].values())), len(schema["messages"]))
 

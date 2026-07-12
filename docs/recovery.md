@@ -84,7 +84,7 @@ cmake -S . -B build -G Ninja \
   -DPICO_BOARD=pico
 cmake --build build
 
-python3 tools/inspect_uf2.py build/tumovgm_recovery_probe.uf2
+python3 tools/inspect_uf2.py build/tumovgm_firmware.uf2
 ```
 
 The build reports `TumoVGM dirty: 0` only when tracked and untracked source

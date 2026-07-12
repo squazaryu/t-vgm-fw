@@ -48,10 +48,11 @@ t-vgm-dev-<major>-<iteration>
 ```
 
 The recovery probe used `t-vgm-dev-001-001`. The reproducible build foundation
-advanced the line to `t-vgm-dev-001-002`. Protocol v1 advances it to
-`t-vgm-dev-001-003`. Each accepted issue-level firmware change advances the
-final three-digit iteration. Stable releases will use semantic versions and Git
-tags such as `v1.0.0`.
+advanced the line to `t-vgm-dev-001-002`. Protocol v1.0 advanced it to
+`t-vgm-dev-001-003`; the first UART bridge endpoint advances it to
+`t-vgm-dev-001-004` with protocol v1.1. Each accepted issue-level firmware
+change advances the final three-digit iteration. Stable releases will use
+semantic versions and Git tags such as `v1.0.0`.
 
 ## Building
 
@@ -81,11 +82,11 @@ python3 tools/build_firmware.py --clean --verify-reproducible
 
 The build produces:
 
-- `build/tumovgm_recovery_probe.elf`
-- `build/tumovgm_recovery_probe.elf.map`
-- `build/tumovgm_recovery_probe.bin`
-- `build/tumovgm_recovery_probe.uf2`
-- `build/tumovgm_recovery_probe.manifest.json`
+- `build/tumovgm_firmware.elf`
+- `build/tumovgm_firmware.elf.map`
+- `build/tumovgm_firmware.bin`
+- `build/tumovgm_firmware.uf2`
+- `build/tumovgm_firmware.manifest.json`
 
 The manifest exposes firmware, protocol, Git, SDK, compiler, target, size, and
 SHA-256 information without flashing the module. The normal build refuses a
