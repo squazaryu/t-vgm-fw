@@ -64,9 +64,16 @@ endif()
 pico_sdk_init()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-set(TUMOVGM_VERSION "t-vgm-dev-001-002")
-set(TUMOVGM_PROTOCOL_MAJOR 0)
+set(TUMOVGM_VERSION "t-vgm-dev-001-003")
+set(TUMOVGM_PROTOCOL_MAJOR 1)
 set(TUMOVGM_PROTOCOL_MINOR 0)
+
+execute_process(
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_protocol_constants.py"
+        --check
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    COMMAND_ERROR_IS_FATAL ANY
+)
 
 execute_process(
     COMMAND git rev-parse --short=12 HEAD
@@ -90,7 +97,12 @@ else()
 endif()
 
 add_executable(tumovgm_recovery_probe
+    src/protocol.c
     src/recovery_probe.c
+)
+
+target_include_directories(tumovgm_recovery_probe PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
 target_compile_options(tumovgm_recovery_probe PRIVATE
@@ -100,8 +112,6 @@ target_compile_options(tumovgm_recovery_probe PRIVATE
 )
 target_compile_definitions(tumovgm_recovery_probe PRIVATE
     TUMOVGM_VERSION="${TUMOVGM_VERSION}"
-    TUMOVGM_PROTOCOL_MAJOR=${TUMOVGM_PROTOCOL_MAJOR}
-    TUMOVGM_PROTOCOL_MINOR=${TUMOVGM_PROTOCOL_MINOR}
     TUMOVGM_GIT_COMMIT="${TUMOVGM_GIT_COMMIT}"
     TUMOVGM_GIT_DIRTY=${TUMOVGM_GIT_DIRTY}
 )
@@ -114,7 +124,7 @@ pico_set_program_description(
     tumovgm_recovery_probe
     "Input-only RP2040 recovery and USB heartbeat probe"
 )
-pico_set_program_version(tumovgm_recovery_probe "001.002")
+pico_set_program_version(tumovgm_recovery_probe "001.003")
 pico_enable_stdio_uart(tumovgm_recovery_probe 0)
 pico_enable_stdio_usb(tumovgm_recovery_probe 1)
 pico_add_extra_outputs(tumovgm_recovery_probe)

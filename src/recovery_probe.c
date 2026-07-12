@@ -2,6 +2,7 @@
 
 #include <hardware/gpio.h>
 #include <pico/stdlib.h>
+#include <tumovgm/protocol_ids.h>
 
 #ifndef TUMOVGM_VERSION
 #error "TUMOVGM_VERSION must be defined by the build system"
@@ -9,14 +10,6 @@
 
 #ifndef TUMOVGM_GIT_COMMIT
 #error "TUMOVGM_GIT_COMMIT must be defined by the build system"
-#endif
-
-#ifndef TUMOVGM_PROTOCOL_MAJOR
-#error "TUMOVGM_PROTOCOL_MAJOR must be defined by the build system"
-#endif
-
-#ifndef TUMOVGM_PROTOCOL_MINOR
-#error "TUMOVGM_PROTOCOL_MINOR must be defined by the build system"
 #endif
 
 #ifndef TUMOVGM_GIT_DIRTY

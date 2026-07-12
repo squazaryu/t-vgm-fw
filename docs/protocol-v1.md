@@ -1,0 +1,148 @@
+# TumoVGM Protocol v1
+
+This document is the normative wire contract between a Tumoflip client and the
+RP2040 firmware in the Flipper Zero Video Game Module. Version 1.0 defines the
+framing and lifecycle only. A physical UART binding is specified separately by
+issue `#4`.
+
+The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are interpreted as in
+RFC 2119.
+
+## Byte order and limits
+
+All multi-byte integers are unsigned and little-endian. A receiver MUST NOT
+allocate memory based on an unvalidated field from the wire. Version 1 limits a
+payload to 512 bytes and a complete frame to 528 bytes.
+
+| Offset | Size | Field | Requirement |
+|---:|---:|---|---|
+| 0 | 4 | Magic | ASCII `TVG1` |
+| 4 | 1 | Protocol major | `1` for this contract |
+| 5 | 1 | Protocol minor | `0` for this contract |
+| 6 | 1 | Kind | Request `1`, response `2`, event `3`, error `4` |
+| 7 | 1 | Flags | `MORE=0x01`, `ACK_REQUIRED=0x02` |
+| 8 | 2 | Sequence | Nonzero for requests and replies; zero for events |
+| 10 | 2 | Message ID | Nonzero; known IDs are listed below |
+| 12 | 2 | Payload length | `0..512` |
+| 14 | N | Payload | Message-specific data |
+| 14+N | 2 | CRC | CRC-16/CCITT-FALSE |
+
+CRC parameters are polynomial `0x1021`, initial value `0xFFFF`, no reflection,
+and no final XOR. The covered bytes start at protocol major (offset 4) and end
+at the last payload byte. Magic and the CRC field itself are excluded. The
+check value for ASCII `123456789` is `0x29B1`.
+
+A receiver MUST reject unknown flag bits, invalid kind/sequence combinations,
+zero message IDs, bad CRC, and oversized payloads. It MUST accept a
+syntactically valid unknown nonzero message ID so that the dispatcher can reply
+with `UNSUPPORTED_MESSAGE`; an unknown ID must not desynchronize the stream.
+
+## Version negotiation
+
+The first valid request after transport connection MUST be `HELLO`. No session
+or feature command is allowed before a successful HELLO response.
+
+- A different major version MUST fail closed with `UNSUPPORTED_VERSION`, after
+  which the responder closes or resets the transport session.
+- Peers with the same major negotiate `min(local minor, peer minor)`.
+- Peers negotiate `min(local max payload, peer max payload)`.
+- A zero advertised max payload is malformed.
+- New messages introduced by a later minor version receive
+  `UNSUPPORTED_MESSAGE` when the older peer does not implement them.
+
+### HELLO (`0x0001`)
+
+Request payload (12 bytes):
+
+| Offset | Size | Field |
+|---:|---:|---|
+| 0 | 1 | Role: Flipper `1`, VGM `2`, host diagnostic `3` |
+| 1 | 1 | Reserved, MUST be zero |
+| 2 | 2 | Maximum accepted payload |
+| 4 | 8 | Requested capability mask |
+
+Response payload (12 bytes): role, negotiated minor, negotiated max payload,
+and available capability mask in the same field widths.
+
+### CAPABILITIES (`0x0002`)
+
+The response payload is 24 bytes: available capabilities `u64`, active
+capabilities `u64`, max payload `u16`, max stream chunk `u16`, max queued stream
+frames `u16`, and one reserved zero `u16`. Capability bits are generated from
+`protocol/protocol-v1.json` and currently cover Video Out, IMU, GPIO capture,
+hardware trigger, trace buffer, UART/SPI/I2C decoders, USB device, and USB host.
+
+## Request lifecycle
+
+Every request gets exactly one terminal response or error with the same
+nonzero sequence. Sequence values MAY be reused only after their previous
+request is terminal. A requester owns its timeout; on timeout it SHOULD send a
+`CANCEL`, then discard a late terminal reply for that sequence.
+
+`CANCEL (0x0005)` payload is `session_id u32, target_sequence u16, reserved
+u16`. Cancellation is idempotent. A completed or already-cancelled target
+returns a successful terminal response. A command that cannot be interrupted
+MAY finish normally, but MUST still release all owned resources.
+
+`PING (0x0006)` contains an opaque `u64` token and echoes it unchanged.
+
+An error frame payload starts with `code u16, detail u16`. It MAY append at most
+96 bytes of diagnostic UTF-8. Diagnostic text is not a stable API. Error codes
+are `UNSUPPORTED_VERSION`, `UNSUPPORTED_MESSAGE`, `MALFORMED`, `BAD_STATE`,
+`BUSY`, `TIMEOUT`, `CANCELLED`, `NO_CAPABILITY`, `OVERFLOW`, and `INTERNAL`.
+
+## Session ownership
+
+Only one mutable feature session can exist at a time:
+
+```text
+DISCONNECTED -> NEGOTIATING -> READY -> ACTIVE -> READY
+       ^                                    |
+       +------------- disconnect -----------+
+```
+
+`SESSION_OPEN (0x0003)` request payload is `requested_caps u64, timeout_ms
+u32`. Its response is `session_id u32, granted_caps u64, lease_ms u32`. Session
+IDs are nonzero and assigned by the VGM.
+
+`SESSION_CLOSE (0x0004)` carries `session_id u32`. Only the owner may close an
+active session. The first valid close releases resources and succeeds. A
+duplicate close for the most recently closed ID also succeeds and is reported
+as already closed internally. A close for another ID fails with `BAD_STATE`.
+
+Transport disconnect atomically cancels outstanding work, stops streams,
+returns externally visible GPIO to its safe state, releases the active session,
+and enters `DISCONNECTED`. Repeating cleanup after disconnect has no effect.
+
+## Streaming and backpressure
+
+Streaming is credit based. `STREAM_CREDIT (0x0010)` payload is `session_id u32,
+stream_id u16, credits u16`. Each `STREAM_DATA (0x0011)` event consumes exactly
+one credit and contains `session_id u32, stream_id u16, chunk_sequence u16,
+data...`. The producer MUST pause at zero credits.
+
+Each stream has a statically bounded queue advertised by CAPABILITIES. Queue or
+credit counter overflow fails with `OVERFLOW`; it must never wrap. Dropping
+data, if a feature permits it, MUST be observable in the terminal
+`STREAM_END (0x0012)` status. `STREAM_END` contains `session_id u32, stream_id
+u16, status u16` and does not consume credit.
+
+## Parser recovery and security
+
+- A partial magic or frame is retained until more bytes arrive.
+- Garbage before a possible `TVG1` prefix is discarded without reading beyond
+  the supplied buffer.
+- Bad CRC and oversize headers discard at least one byte before rescan.
+- The codec stores only views into caller-owned buffers and performs no heap
+  allocation.
+- Feature dispatch MUST validate the exact payload length for its message before
+  reading message fields.
+- Hardware-driving capabilities remain disabled until HELLO, SESSION_OPEN, and
+  explicit capability authorization all succeed.
+
+The canonical machine-readable values are in
+`protocol/protocol-v1.json`. Regenerate `include/tumovgm/protocol_ids.h` with:
+
+```sh
+python3 tools/generate_protocol_constants.py
+```
