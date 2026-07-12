@@ -43,9 +43,8 @@ static void tumovgm_set_external_gpio_high_impedance(void) {
     }
 }
 
-static TumovgmDashboardLinkState tumovgm_dashboard_link_state(
-    const TumovgmBridgeUartStatus* status,
-    uint32_t now_ms) {
+static TumovgmDashboardLinkState
+    tumovgm_dashboard_link_state(const TumovgmBridgeUartStatus* status, uint32_t now_ms) {
     if(status->last_error == TumovgmErrorUnsupportedVersion &&
        status->peer_major != TUMOVGM_PROTOCOL_MAJOR) {
         return TumovgmDashboardLinkIncompatible;
@@ -72,8 +71,8 @@ static void tumovgm_update_dashboard(uint32_t now_ms, bool publish) {
         .received_frames = status.received_frames,
         .last_error = status.last_error,
         .firmware_dirty = TUMOVGM_GIT_DIRTY != 0,
-        .imu_available = false,
-        .imu_healthy = false,
+        .imu_available = status.imu_available,
+        .imu_healthy = status.imu_healthy,
     };
     tumovgm_dashboard_render(&tumovgm_dashboard_frame, &snapshot);
     if(publish) tumovgm_video_out_publish(&tumovgm_dashboard_frame);

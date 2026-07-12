@@ -3,7 +3,7 @@
   "protocol": {
     "name": "TumoVGM",
     "major": 1,
-    "minor": 1,
+    "minor": 2,
     "magic_ascii": "TVG1",
     "max_payload": 512,
     "crc": "CRC-16/CCITT-FALSE"
@@ -28,7 +28,10 @@
     "DEVICE_INFO": 7,
     "STREAM_CREDIT": 16,
     "STREAM_DATA": 17,
-    "STREAM_END": 18
+    "STREAM_END": 18,
+    "IMU_INFO": 32,
+    "IMU_CONFIG": 33,
+    "IMU_GESTURE": 34
   },
   "errors": {
     "UNSUPPORTED_VERSION": 1,

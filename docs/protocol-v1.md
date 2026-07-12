@@ -3,7 +3,8 @@
 This document is the normative wire contract between a Tumoflip client and the
 RP2040 firmware in the Flipper Zero Video Game Module. Version 1.0 defines the
 framing and lifecycle. Version 1.1 adds queryable device identity and the UART
-binding used by the native Tumoflip client.
+binding used by the native Tumoflip client. Version 1.2 adds bounded IMU
+telemetry and debounced gesture events.
 
 The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are interpreted as in
 RFC 2119.
@@ -18,7 +19,7 @@ payload to 512 bytes and a complete frame to 528 bytes.
 |---:|---:|---|---|
 | 0 | 4 | Magic | ASCII `TVG1` |
 | 4 | 1 | Protocol major | `1` for this contract |
-| 5 | 1 | Protocol minor | `1` for the current contract |
+| 5 | 1 | Protocol minor | `2` for the current contract |
 | 6 | 1 | Kind | Request `1`, response `2`, event `3`, error `4` |
 | 7 | 1 | Flags | `MORE=0x01`, `ACK_REQUIRED=0x02` |
 | 8 | 2 | Sequence | Nonzero for requests and replies; zero for events |
@@ -156,6 +157,49 @@ credit counter overflow fails with `OVERFLOW`; it must never wrap. Dropping
 data, if a feature permits it, MUST be observable in the terminal
 `STREAM_END (0x0012)` status. `STREAM_END` contains `session_id u32, stream_id
 u16, status u16` and does not consume credit.
+
+## IMU service (since v1.2)
+
+The ICM-42688-P service is available only when capability bit `IMU` is present,
+an active session has been granted that capability, and the peer negotiated
+minor version 2 or newer. SPI ownership is session-scoped; closing or expiring
+the session powers down the sensor and returns its pins to input/high impedance.
+
+`IMU_INFO (0x0020)` has an empty request. Its 12-byte response is `health u8,
+who_am_i u8, bus_error u16, max_rate_hz u16, supported_rates u16, sample_format
+u16, reserved u16`. `WHO_AM_I=0x47`; rate mask bits 0, 1, and 2 represent 10,
+25, and 50 Hz. Sample format 1 is the fixed-point record below.
+
+`IMU_CONFIG (0x0021)` request payload is `session_id u32, requested_rate_hz
+u16, flags u8, reserved u8`. Flag bit 0 enables raw samples and bit 1 enables
+gesture events. The responder clamps the requested rate to 10, 25, or 50 Hz
+without exceeding the request. Its 12-byte response is `session_id u32,
+actual_rate_hz u16, flags u8, stream_id u8, period_us u32`. Stream ID 1 is the
+IMU sample stream.
+
+IMU samples use `STREAM_DATA (0x0011)` and consume one granted credit. The
+28-byte payload is:
+
+| Offset | Size | Field |
+|---:|---:|---|
+| 0 | 4 | Session ID |
+| 4 | 2 | Stream ID (`1`) |
+| 6 | 2 | Sample sequence |
+| 8 | 4 | Monotonic timestamp, ms |
+| 12 | 2 | Temperature, signed centi-degrees Celsius |
+| 14 | 6 | Signed acceleration X/Y/Z, mg |
+| 20 | 6 | Signed angular velocity X/Y/Z, deci-degrees/s |
+| 26 | 1 | Calibrated dominant-axis orientation |
+| 27 | 1 | Health/calibration flags |
+
+`IMU_GESTURE (0x0022)` is a zero-sequence event with a 16-byte payload:
+`session_id u32, event_sequence u16, gesture u8, confidence u8, timestamp_ms
+u32, orientation u8, reserved[3]`. Orientation changes require six stable
+samples, at least 800 mg on the leading axis, and a 180 mg lead over the next
+axis. The current axis is retained down to 550 mg around diagonal positions.
+Gesture events have an 800 ms minimum debounce and are never emitted
+outside an active session. They do not consume raw-stream credit, but only one
+gesture may be pending at a time.
 
 ## Parser recovery and security
 

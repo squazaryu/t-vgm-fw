@@ -76,9 +76,8 @@ static bool tumovgm_bridge_error(
 }
 
 static bool tumovgm_bridge_state_is_ready(const TumovgmBridge* bridge) {
-    return bridge->negotiated_ready &&
-           (bridge->session.state == TumovgmSessionStateReady ||
-            bridge->session.state == TumovgmSessionStateActive);
+    return bridge->negotiated_ready && (bridge->session.state == TumovgmSessionStateReady ||
+                                        bridge->session.state == TumovgmSessionStateActive);
 }
 
 static bool tumovgm_bridge_handle_hello(
@@ -155,8 +154,7 @@ static bool tumovgm_bridge_handle_device_info(
     memset(bridge->response_payload, 0, TumovgmDeviceInfoPayloadSize);
     tumovgm_bridge_write_u16(bridge->response_payload, bridge->identity.hardware_target);
     tumovgm_bridge_write_u16(bridge->response_payload + 2, bridge->identity.hardware_revision);
-    tumovgm_bridge_copy_ascii(
-        bridge->response_payload + 4, 24, bridge->identity.firmware_version);
+    tumovgm_bridge_copy_ascii(bridge->response_payload + 4, 24, bridge->identity.firmware_version);
     tumovgm_bridge_copy_ascii(bridge->response_payload + 28, 12, bridge->identity.git_commit);
     bridge->response_payload[40] = bridge->identity.dirty ? 1 : 0;
     tumovgm_bridge_prepare_response(
@@ -191,8 +189,7 @@ static bool tumovgm_bridge_handle_session_open(
 
     bridge->next_session_id++;
     if(bridge->next_session_id == 0) bridge->next_session_id++;
-    if(tumovgm_session_open(&bridge->session, bridge->next_session_id) !=
-       TumovgmSessionResultOk) {
+    if(tumovgm_session_open(&bridge->session, bridge->next_session_id) != TumovgmSessionResultOk) {
         return tumovgm_bridge_error(
             bridge, request, response, TumovgmErrorInternal, bridge->session.state);
     }
@@ -255,6 +252,15 @@ void tumovgm_bridge_init(
     tumovgm_session_init(&bridge->session);
 }
 
+void tumovgm_bridge_set_extension_handler(
+    TumovgmBridge* bridge,
+    TumovgmBridgeExtensionHandler handler,
+    void* context) {
+    if(bridge == NULL) return;
+    bridge->extension_handler = handler;
+    bridge->extension_context = context;
+}
+
 bool tumovgm_bridge_handle(
     TumovgmBridge* bridge,
     const TumovgmFrame* request,
@@ -296,6 +302,11 @@ bool tumovgm_bridge_handle(
             bridge, request, response, TumovgmFrameKindResponse, TumovgmPingPayloadSize);
         return true;
     default:
+        if(bridge->extension_handler != NULL &&
+           bridge->extension_handler(
+               bridge->extension_context, bridge, request, now_ms, response)) {
+            return true;
+        }
         return tumovgm_bridge_error(
             bridge, request, response, TumovgmErrorUnsupportedMessage, request->message);
     }
