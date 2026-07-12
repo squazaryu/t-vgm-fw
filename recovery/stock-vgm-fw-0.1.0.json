@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "artifact": {
+    "name": "vgm-fw-0.1.0.uf2",
+    "version": "0.1.0",
+    "source_repository": "https://github.com/flipperdevices/flipperzero-good-faps",
+    "source_commit": "126ecf63a570a51a49ad89991cd77ffa54c1de2c",
+    "source_url": "https://raw.githubusercontent.com/flipperdevices/flipperzero-good-faps/126ecf63a570a51a49ad89991cd77ffa54c1de2c/video_game_module_tool/files/vgm-fw-0.1.0.uf2",
+    "sha256": "008c7ede9f99dd4cad1cbe0260fed4792d5654e7c3c731218be69fa94ced84e8",
+    "size_bytes": 303616
+  },
+  "uf2": {
+    "block_count": 593,
+    "payload_size": 256,
+    "flags": "0x00002000",
+    "family_id": "0xe48bff56",
+    "start_address": "0x10000000",
+    "end_address_exclusive": "0x10025100",
+    "contiguous": true
+  }
+}
