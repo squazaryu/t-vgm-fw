@@ -64,9 +64,9 @@ endif()
 pico_sdk_init()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-set(TUMOVGM_VERSION "t-vgm-dev-001-003")
+set(TUMOVGM_VERSION "t-vgm-dev-001-004")
 set(TUMOVGM_PROTOCOL_MAJOR 1)
-set(TUMOVGM_PROTOCOL_MINOR 0)
+set(TUMOVGM_PROTOCOL_MINOR 1)
 
 execute_process(
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_protocol_constants.py"
@@ -96,53 +96,56 @@ else()
     set(TUMOVGM_GIT_DIRTY 1)
 endif()
 
-add_executable(tumovgm_recovery_probe
+add_executable(tumovgm_firmware
+    src/bridge.c
+    src/bridge_uart.c
     src/protocol.c
-    src/recovery_probe.c
+    src/main.c
 )
 
-target_include_directories(tumovgm_recovery_probe PRIVATE
+target_include_directories(tumovgm_firmware PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
-target_compile_options(tumovgm_recovery_probe PRIVATE
+target_compile_options(tumovgm_firmware PRIVATE
     -Wall
     -Wextra
     -Werror
 )
-target_compile_definitions(tumovgm_recovery_probe PRIVATE
+target_compile_definitions(tumovgm_firmware PRIVATE
     TUMOVGM_VERSION="${TUMOVGM_VERSION}"
     TUMOVGM_GIT_COMMIT="${TUMOVGM_GIT_COMMIT}"
     TUMOVGM_GIT_DIRTY=${TUMOVGM_GIT_DIRTY}
 )
-target_link_libraries(tumovgm_recovery_probe PRIVATE
+target_link_libraries(tumovgm_firmware PRIVATE
+    hardware_uart
     pico_stdlib
 )
 
-pico_set_program_name(tumovgm_recovery_probe "TumoVGM Recovery Probe")
+pico_set_program_name(tumovgm_firmware "TumoVGM Bridge")
 pico_set_program_description(
-    tumovgm_recovery_probe
-    "Input-only RP2040 recovery and USB heartbeat probe"
+    tumovgm_firmware
+    "Versioned UART bridge and USB diagnostic heartbeat"
 )
-pico_set_program_version(tumovgm_recovery_probe "001.003")
-pico_enable_stdio_uart(tumovgm_recovery_probe 0)
-pico_enable_stdio_usb(tumovgm_recovery_probe 1)
-pico_add_extra_outputs(tumovgm_recovery_probe)
+pico_set_program_version(tumovgm_firmware "001.004")
+pico_enable_stdio_uart(tumovgm_firmware 0)
+pico_enable_stdio_usb(tumovgm_firmware 1)
+pico_add_extra_outputs(tumovgm_firmware)
 
 add_custom_command(
-    TARGET tumovgm_recovery_probe
+    TARGET tumovgm_firmware
     POST_BUILD
-    COMMAND "${CMAKE_OBJCOPY}" --strip-debug "$<TARGET_FILE:tumovgm_recovery_probe>"
+    COMMAND "${CMAKE_OBJCOPY}" --strip-debug "$<TARGET_FILE:tumovgm_firmware>"
     COMMENT "Normalizing ELF metadata for reproducible artifacts"
     VERBATIM
 )
 
-set(TUMOVGM_OUTPUT_BASE "${CMAKE_CURRENT_BINARY_DIR}/tumovgm_recovery_probe")
+set(TUMOVGM_OUTPUT_BASE "${CMAKE_CURRENT_BINARY_DIR}/tumovgm_firmware")
 add_custom_command(
-    TARGET tumovgm_recovery_probe
+    TARGET tumovgm_firmware
     POST_BUILD
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/make_firmware_manifest.py"
-        --elf "$<TARGET_FILE:tumovgm_recovery_probe>"
+        --elf "$<TARGET_FILE:tumovgm_firmware>"
         --bin "${TUMOVGM_OUTPUT_BASE}.bin"
         --uf2 "${TUMOVGM_OUTPUT_BASE}.uf2"
         --output "${TUMOVGM_OUTPUT_BASE}.manifest.json"

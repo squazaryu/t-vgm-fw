@@ -18,7 +18,7 @@ DEFAULT_SDK = REPO_ROOT / "third_party" / "pico-sdk"
 EXPECTED_SDK_COMMIT = "6a7db34ff63345a7badec79ebea3aaef1712f374"
 EXPECTED_TINYUSB_COMMIT = "86c416d4c0fb38432460b3e11b08b9de76941bf5"
 EXPECTED_GCC_VERSION = "12.3.1"
-OUTPUT_BASE = "tumovgm_recovery_probe"
+OUTPUT_BASE = "tumovgm_firmware"
 
 
 class BuildError(RuntimeError):

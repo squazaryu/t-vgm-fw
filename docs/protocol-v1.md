@@ -2,8 +2,8 @@
 
 This document is the normative wire contract between a Tumoflip client and the
 RP2040 firmware in the Flipper Zero Video Game Module. Version 1.0 defines the
-framing and lifecycle only. A physical UART binding is specified separately by
-issue `#4`.
+framing and lifecycle. Version 1.1 adds queryable device identity and the UART
+binding used by the native Tumoflip client.
 
 The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are interpreted as in
 RFC 2119.
@@ -18,7 +18,7 @@ payload to 512 bytes and a complete frame to 528 bytes.
 |---:|---:|---|---|
 | 0 | 4 | Magic | ASCII `TVG1` |
 | 4 | 1 | Protocol major | `1` for this contract |
-| 5 | 1 | Protocol minor | `0` for this contract |
+| 5 | 1 | Protocol minor | `1` for the current contract |
 | 6 | 1 | Kind | Request `1`, response `2`, event `3`, error `4` |
 | 7 | 1 | Flags | `MORE=0x01`, `ACK_REQUIRED=0x02` |
 | 8 | 2 | Sequence | Nonzero for requests and replies; zero for events |
@@ -71,6 +71,36 @@ capabilities `u64`, max payload `u16`, max stream chunk `u16`, max queued stream
 frames `u16`, and one reserved zero `u16`. Capability bits are generated from
 `protocol/protocol-v1.json` and currently cover Video Out, IMU, GPIO capture,
 hardware trigger, trace buffer, UART/SPI/I2C decoders, USB device, and USB host.
+
+### DEVICE_INFO (`0x0007`, since v1.1)
+
+The request payload is empty. The response is a fixed 48-byte identity record:
+
+| Offset | Size | Field |
+|---:|---:|---|
+| 0 | 2 | Hardware target; VGM RP2040 is `1` |
+| 2 | 2 | Hardware revision, or `0` when not detectable |
+| 4 | 24 | Zero-padded ASCII firmware version |
+| 28 | 12 | Lowercase ASCII Git commit prefix, no terminator |
+| 40 | 1 | Dirty build flag, `0` or `1` |
+| 41 | 7 | Reserved, MUST be zero |
+
+A v1.0 peer does not send this request and displays identity as unavailable.
+The message does not disclose unique hardware identifiers.
+
+## UART binding
+
+The Video Game Module endpoint uses RP2040 `UART0` on GPIO0 TX and GPIO1 RX at
+230400 baud, 8 data bits, no parity, one stop bit, and no hardware flow control.
+These are the same physical lines used by the stock Expansion protocol. A
+Tumoflip client MUST disable the Expansion service before acquiring USART and
+MUST release USART and restore the service on every exit path.
+
+Custom TumoVGM firmware does not emit the stock 9600-baud presence pulse. A
+client probes TumoVGM at 230400 first; if HELLO times out it may listen at 9600
+for the stock module pulse. Absence of both responses means missing or
+unpowered hardware. Arbitrary bytes at either baud are never treated as a
+compatible module.
 
 ## Request lifecycle
 

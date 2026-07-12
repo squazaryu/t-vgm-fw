@@ -88,8 +88,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           path: |
-            build/tumovgm_recovery_probe.elf
-            build/tumovgm_recovery_probe.elf.map
-            build/tumovgm_recovery_probe.bin
-            build/tumovgm_recovery_probe.uf2
-            build/tumovgm_recovery_probe.manifest.json
+            build/tumovgm_firmware.elf
+            build/tumovgm_firmware.elf.map
+            build/tumovgm_firmware.bin
+            build/tumovgm_firmware.uf2
+            build/tumovgm_firmware.manifest.json

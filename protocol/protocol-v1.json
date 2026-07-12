@@ -3,7 +3,7 @@
   "protocol": {
     "name": "TumoVGM",
     "major": 1,
-    "minor": 0,
+    "minor": 1,
     "magic_ascii": "TVG1",
     "max_payload": 512,
     "crc": "CRC-16/CCITT-FALSE"
@@ -25,6 +25,7 @@
     "SESSION_CLOSE": 4,
     "CANCEL": 5,
     "PING": 6,
+    "DEVICE_INFO": 7,
     "STREAM_CREDIT": 16,
     "STREAM_DATA": 17,
     "STREAM_END": 18
@@ -52,5 +53,13 @@
     "DECODER_I2C": 7,
     "USB_DEVICE": 8,
     "USB_HOST": 9
+  },
+  "roles": {
+    "FLIPPER": 1,
+    "VGM": 2,
+    "HOST_DIAGNOSTIC": 3
+  },
+  "hardware_targets": {
+    "VGM_RP2040": 1
   }
 }
