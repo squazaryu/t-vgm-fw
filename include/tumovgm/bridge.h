@@ -33,6 +33,14 @@ typedef struct TumovgmBridgeIdentity {
     bool dirty;
 } TumovgmBridgeIdentity;
 
+struct TumovgmBridge;
+typedef bool (*TumovgmBridgeExtensionHandler)(
+    void* context,
+    struct TumovgmBridge* bridge,
+    const TumovgmFrame* request,
+    uint32_t now_ms,
+    TumovgmFrame* response);
+
 typedef struct TumovgmBridge {
     TumovgmSession session;
     TumovgmBridgeIdentity identity;
@@ -43,6 +51,8 @@ typedef struct TumovgmBridge {
     uint32_t lease_ms;
     uint32_t last_activity_ms;
     bool negotiated_ready;
+    TumovgmBridgeExtensionHandler extension_handler;
+    void* extension_context;
     uint8_t response_payload[TUMOVGM_PROTOCOL_MAX_PAYLOAD];
 } TumovgmBridge;
 
@@ -50,6 +60,11 @@ void tumovgm_bridge_init(
     TumovgmBridge* bridge,
     const TumovgmBridgeIdentity* identity,
     uint64_t available_capabilities);
+
+void tumovgm_bridge_set_extension_handler(
+    TumovgmBridge* bridge,
+    TumovgmBridgeExtensionHandler handler,
+    void* context);
 
 bool tumovgm_bridge_handle(
     TumovgmBridge* bridge,

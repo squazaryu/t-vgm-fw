@@ -3,12 +3,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#define CHECK(condition)                                                             \
-    do {                                                                             \
-        if(!(condition)) {                                                           \
+#define CHECK(condition)                                                                    \
+    do {                                                                                    \
+        if(!(condition)) {                                                                  \
             fprintf(stderr, "CHECK failed at %s:%d: %s\n", __FILE__, __LINE__, #condition); \
-            return false;                                                            \
-        }                                                                            \
+            return false;                                                                   \
+        }                                                                                   \
     } while(false)
 
 static uint16_t read_u16(const uint8_t* data) {
@@ -26,11 +26,13 @@ static void write_u16(uint8_t* data, uint16_t value) {
 }
 
 static void write_u32(uint8_t* data, uint32_t value) {
-    for(uint8_t index = 0; index < 4; index++) data[index] = (uint8_t)(value >> (index * 8));
+    for(uint8_t index = 0; index < 4; index++)
+        data[index] = (uint8_t)(value >> (index * 8));
 }
 
 static void write_u64(uint8_t* data, uint64_t value) {
-    for(uint8_t index = 0; index < 8; index++) data[index] = (uint8_t)(value >> (index * 8));
+    for(uint8_t index = 0; index < 8; index++)
+        data[index] = (uint8_t)(value >> (index * 8));
 }
 
 static TumovgmFrame request(
@@ -77,6 +79,34 @@ static TumovgmBridge make_bridge(uint64_t capabilities) {
     return bridge;
 }
 
+typedef struct ExtensionContext {
+    uint16_t calls;
+    uint32_t last_now_ms;
+} ExtensionContext;
+
+static bool extension_handler(
+    void* context,
+    TumovgmBridge* bridge,
+    const TumovgmFrame* request_frame,
+    uint32_t now_ms,
+    TumovgmFrame* response) {
+    ExtensionContext* extension = context;
+    extension->calls++;
+    extension->last_now_ms = now_ms;
+    if(request_frame->message != TumovgmMessageImuInfo) return false;
+    bridge->response_payload[0] = 0x47;
+    *response = (TumovgmFrame){
+        .major = TUMOVGM_PROTOCOL_MAJOR,
+        .minor = bridge->negotiated.minor,
+        .kind = TumovgmFrameKindResponse,
+        .sequence = request_frame->sequence,
+        .message = request_frame->message,
+        .payload_length = 1,
+        .payload = bridge->response_payload,
+    };
+    return true;
+}
+
 static bool negotiate(TumovgmBridge* bridge, uint8_t peer_minor, TumovgmFrame* response) {
     uint8_t payload[TumovgmHelloPayloadSize];
     make_hello(payload, TUMOVGM_PROTOCOL_MAX_PAYLOAD, 0);
@@ -98,12 +128,7 @@ static bool test_negotiation_and_identity(void) {
     CHECK(bridge.session.state == TumovgmSessionStateReady);
 
     const TumovgmFrame info = request(
-        TUMOVGM_PROTOCOL_MAJOR,
-        TUMOVGM_PROTOCOL_MINOR,
-        2,
-        TumovgmMessageDeviceInfo,
-        NULL,
-        0);
+        TUMOVGM_PROTOCOL_MAJOR, TUMOVGM_PROTOCOL_MINOR, 2, TumovgmMessageDeviceInfo, NULL, 0);
     CHECK(tumovgm_bridge_handle(&bridge, &info, 110, &response));
     CHECK(response.payload_length == TumovgmDeviceInfoPayloadSize);
     CHECK(read_u16(response.payload) == TumovgmHardwareTargetVgmRp2040);
@@ -112,12 +137,7 @@ static bool test_negotiation_and_identity(void) {
     CHECK(response.payload[40] == 0);
 
     const TumovgmFrame capabilities = request(
-        TUMOVGM_PROTOCOL_MAJOR,
-        TUMOVGM_PROTOCOL_MINOR,
-        3,
-        TumovgmMessageCapabilities,
-        NULL,
-        0);
+        TUMOVGM_PROTOCOL_MAJOR, TUMOVGM_PROTOCOL_MINOR, 3, TumovgmMessageCapabilities, NULL, 0);
     CHECK(tumovgm_bridge_handle(&bridge, &capabilities, 120, &response));
     CHECK(response.payload_length == TumovgmCapabilitiesPayloadSize);
     CHECK(response.payload[0] == 3);
@@ -204,9 +224,28 @@ static bool test_errors_ping_and_disconnect(void) {
     return true;
 }
 
+static bool test_extension_dispatch(void) {
+    TumovgmBridge bridge = make_bridge(UINT64_C(1) << TumovgmCapabilityBitImu);
+    ExtensionContext extension = {0};
+    tumovgm_bridge_set_extension_handler(&bridge, extension_handler, &extension);
+    TumovgmFrame response;
+    CHECK(negotiate(&bridge, TUMOVGM_PROTOCOL_MINOR, &response));
+
+    const TumovgmFrame info =
+        request(TUMOVGM_PROTOCOL_MAJOR, TUMOVGM_PROTOCOL_MINOR, 9, TumovgmMessageImuInfo, NULL, 0);
+    CHECK(tumovgm_bridge_handle(&bridge, &info, 321, &response));
+    CHECK(response.kind == TumovgmFrameKindResponse);
+    CHECK(response.payload_length == 1);
+    CHECK(response.payload[0] == 0x47);
+    CHECK(extension.calls == 1);
+    CHECK(extension.last_now_ms == 321);
+    return true;
+}
+
 int main(void) {
     if(!test_negotiation_and_identity() || !test_version_and_minor_compatibility() ||
-       !test_session_close_and_timeout() || !test_errors_ping_and_disconnect()) {
+       !test_session_close_and_timeout() || !test_errors_ping_and_disconnect() ||
+       !test_extension_dispatch()) {
         return 1;
     }
     puts("bridge_host_test: PASS");

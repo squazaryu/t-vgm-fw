@@ -3,12 +3,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#define CHECK(condition)                                                             \
-    do {                                                                             \
-        if(!(condition)) {                                                           \
+#define CHECK(condition)                                                                    \
+    do {                                                                                    \
+        if(!(condition)) {                                                                  \
             fprintf(stderr, "CHECK failed at %s:%d: %s\n", __FILE__, __LINE__, #condition); \
-            return false;                                                            \
-        }                                                                            \
+            return false;                                                                   \
+        }                                                                                   \
     } while(false)
 
 static uint32_t frame_hash(const TumovgmDashboardFrame* frame) {
@@ -54,8 +54,7 @@ static bool test_dashboard_states(void) {
     CHECK(color_count(&waiting, TumovgmDashboardColorOrange) > 8000);
     CHECK(color_count(&waiting, TumovgmDashboardColorText) > 500);
     CHECK(color_count(&waiting, TumovgmDashboardColorYellow) > 100);
-    CHECK(tumovgm_dashboard_get_pixel(&waiting, 319, 239) ==
-          TumovgmDashboardColorBackground);
+    CHECK(tumovgm_dashboard_get_pixel(&waiting, 319, 239) == TumovgmDashboardColorBackground);
     CHECK(frame_hash(&waiting) == UINT32_C(0x71B7F38F));
 
     TumovgmDashboardFrame active;
@@ -71,6 +70,14 @@ static bool test_dashboard_states(void) {
     CHECK(color_count(&incompatible, TumovgmDashboardColorRed) > 200);
     CHECK(frame_hash(&incompatible) != frame_hash(&active));
     CHECK(frame_hash(&incompatible) == UINT32_C(0x3F785A5F));
+
+    TumovgmDashboardFrame imu_ready;
+    state = snapshot(TumovgmDashboardLinkWaiting);
+    state.imu_available = true;
+    state.imu_healthy = true;
+    tumovgm_dashboard_render(&imu_ready, &state);
+    CHECK(frame_hash(&imu_ready) != frame_hash(&waiting));
+    CHECK(color_count(&imu_ready, TumovgmDashboardColorRed) == 0);
 
     printf(
         "dashboard hashes: waiting=%08lx active=%08lx incompatible=%08lx\n",

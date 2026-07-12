@@ -12,6 +12,8 @@ typedef struct TumovgmBridgeUartStatus {
     uint8_t peer_major;
     bool negotiated;
     bool session_active;
+    bool imu_available;
+    bool imu_healthy;
 } TumovgmBridgeUartStatus;
 
 void tumovgm_bridge_uart_init(void);

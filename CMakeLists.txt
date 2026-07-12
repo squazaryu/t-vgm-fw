@@ -86,9 +86,9 @@ add_subdirectory(
     "${CMAKE_CURRENT_BINARY_DIR}/pico-dvi-libdvi"
 )
 
-set(TUMOVGM_VERSION "t-vgm-dev-001-005")
+set(TUMOVGM_VERSION "t-vgm-dev-001-006")
 set(TUMOVGM_PROTOCOL_MAJOR 1)
-set(TUMOVGM_PROTOCOL_MINOR 1)
+set(TUMOVGM_PROTOCOL_MINOR 2)
 
 execute_process(
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_protocol_constants.py"
@@ -122,6 +122,8 @@ set(TUMOVGM_FIRMWARE_SOURCES
     src/bridge.c
     src/bridge_uart.c
     src/dashboard.c
+    src/imu_icm42688.c
+    src/imu_service.c
     src/protocol.c
     src/main.c
     src/video_out.c
@@ -145,6 +147,7 @@ target_compile_definitions(tumovgm_firmware PRIVATE
 )
 target_link_libraries(tumovgm_firmware PRIVATE
     hardware_clocks
+    hardware_spi
     hardware_uart
     hardware_vreg
     hardware_watchdog
@@ -159,7 +162,7 @@ pico_set_program_description(
     tumovgm_firmware
     "Versioned UART bridge and 640x480 Video Out diagnostics"
 )
-pico_set_program_version(tumovgm_firmware "001.005")
+pico_set_program_version(tumovgm_firmware "001.006")
 pico_enable_stdio_uart(tumovgm_firmware 0)
 pico_enable_stdio_usb(tumovgm_firmware 1)
 pico_add_extra_outputs(tumovgm_firmware)
